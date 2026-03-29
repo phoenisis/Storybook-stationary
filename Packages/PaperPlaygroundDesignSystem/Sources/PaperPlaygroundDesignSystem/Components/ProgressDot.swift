@@ -3,7 +3,7 @@ import SwiftUI
 /// A progress indicator dot with semantic visual states.
 public struct ProgressDot: View {
     /// Visual states supported by ``ProgressDot``.
-    public enum State: Hashable {
+    nonisolated public enum State: Hashable, Sendable {
         case filled
         case current
         case empty
