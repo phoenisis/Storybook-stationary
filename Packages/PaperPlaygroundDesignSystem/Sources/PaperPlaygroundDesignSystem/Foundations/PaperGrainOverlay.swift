@@ -20,7 +20,7 @@ public struct PaperGrainOverlay: View {
             for _ in 0..<PaperPlaygroundTokens.Effect.grainCount {
                 let point = CGPoint(x: random() * size.width, y: random() * size.height)
                 let grain = CGRect(x: point.x, y: point.y, width: .grainDot, height: .grainDot)
-                context.fill(Path(ellipseIn: grain), with: .color(.black.opacity(PaperPlaygroundTokens.Effect.grainOpacity)))
+                context.fill(Path(ellipseIn: grain), with: .color(.black.opacity(Double(PaperPlaygroundTokens.Effect.grainOpacity))))
             }
         }
         .blendMode(.multiply)

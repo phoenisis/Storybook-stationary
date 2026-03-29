@@ -3,13 +3,13 @@ import SwiftUI
 /// Shared motion presets for Paper Playground interactions.
 public enum PaperPlaygroundMotion {
     public static let navigation = Animation.spring(
-        response: PaperPlaygroundTokens.Effect.springResponse,
-        dampingFraction: PaperPlaygroundTokens.Effect.springDamping
+        response: Double(PaperPlaygroundTokens.Effect.springResponse),
+        dampingFraction: Double(PaperPlaygroundTokens.Effect.springDamping)
     )
 
     public static let buttonPress = Animation.spring(
-        response: PaperPlaygroundTokens.Effect.pressSpringResponse,
-        dampingFraction: PaperPlaygroundTokens.Effect.pressSpringDamping
+        response: Double(PaperPlaygroundTokens.Effect.pressSpringResponse),
+        dampingFraction: Double(PaperPlaygroundTokens.Effect.pressSpringDamping)
     )
 }
 
