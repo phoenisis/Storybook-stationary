@@ -8,9 +8,14 @@ public extension View {
     ///
     /// - Returns: A view with Paper Playground tab bar styling applied.
     func paperPlaygroundTabBarStyle() -> some View {
+#if os(iOS)
         self
             .tint(.appPrimary)
             .toolbarBackground(.visible, for: .tabBar)
             .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+#else
+        self
+            .tint(.appPrimary)
+#endif
     }
 }
