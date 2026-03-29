@@ -3,9 +3,35 @@ import ProjectDescription
 let project = Project(
     name: "Storybook stationary",
     packages: [
+        .package(path: "Packages/PaperPlaygroundDesignSystem"),
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "1.21.0"),
     ],
     targets: [
+        .target(
+            name: "StorybookShowcase-iOS",
+            destinations: .iOS,
+            product: .app,
+            bundleId: "com.storybookstationary.showcase.ios",
+            deploymentTargets: .iOS("26.0"),
+            infoPlist: .extendingDefault(with: [
+                "UILaunchScreen": .dictionary([:]),
+                "UIDeviceFamily": .array([
+                    .integer(1),
+                    .integer(2),
+                ]),
+            ]),
+            sources: [
+                "StorybookShowcase/Sources/Shared/**",
+                "StorybookShowcase/Sources/iOS/**",
+            ],
+            resources: [
+                "StorybookShowcase/Resources/**",
+            ],
+            dependencies: [
+                .package(product: "PaperPlaygroundDesignSystem"),
+                .package(product: "ComposableArchitecture"),
+            ]
+        ),
         .target(
             name: "StorybookStationary-iOS",
             destinations: .iOS,
@@ -20,6 +46,7 @@ let project = Project(
                 ]),
             ]),
             sources: [
+                "StorybookShowcase/Sources/Shared/**",
                 "StorybookStationary/Sources/Shared/**",
                 "StorybookStationary/Sources/iOS/**",
             ],
@@ -27,6 +54,7 @@ let project = Project(
                 "StorybookStationary/Resources/**",
             ],
             dependencies: [
+                .package(product: "PaperPlaygroundDesignSystem"),
                 .package(product: "ComposableArchitecture"),
             ]
         ),
@@ -45,6 +73,7 @@ let project = Project(
                 "StorybookStationary/Resources/**",
             ],
             dependencies: [
+                .package(product: "PaperPlaygroundDesignSystem"),
                 .package(product: "ComposableArchitecture"),
             ]
         ),
