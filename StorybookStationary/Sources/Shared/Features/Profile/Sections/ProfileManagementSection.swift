@@ -3,6 +3,12 @@ import SwiftUI
 
 struct StorybookProfileManagementSection: View {
     @Bindable var store: StoreOf<StorybookStationaryFeature>
+    
+    private var sortedProfiles: [UserProfile] {
+        store.profiles.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: .l) {
@@ -25,35 +31,36 @@ struct StorybookProfileManagementSection: View {
                 .foregroundStyle(Color.outline)
 
             VStack(spacing: .m) {
-                ForEach(store.profiles) { profile in
-                    HStack(spacing: .m) {
-                        VStack(alignment: .leading, spacing: .xxs) {
-                            Text(profile.name)
-                                .font(.bodyM.weight(.semibold))
-                                .foregroundStyle(Color.onSurface)
-                            if profile.id == store.activeProfileID {
-                                Text("Actif")
-                                    .font(.labelS.weight(.black))
-                                    .textCase(.uppercase)
-                                    .foregroundStyle(Color.appPrimary)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Image(systemName: profile.id == store.activeProfileID ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(profile.id == store.activeProfileID ? Color.appPrimary : Color.outlineVariant)
-                    }
-                    .padding(.l)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .profileGlassSurface(
-                        cornerRadius: .cornerXL,
-                        tint: Color.white.opacity(0.12),
-                        interactive: true
-                    )
-                    .contentShape(RoundedRectangle(tokenRadius: .cornerXL))
-                    .onTapGesture {
+                ForEach(sortedProfiles, id: \.id) { profile in
+                    Button {
                         store.send(.selectProfileTapped(profile.id))
+                    } label: {
+                        HStack(spacing: .m) {
+                            VStack(alignment: .leading, spacing: .xxs) {
+                                Text(profile.name)
+                                    .font(.bodyM.weight(.semibold))
+                                    .foregroundStyle(Color.onSurface)
+                                if profile.id == store.activeProfileID {
+                                    Text("Actif")
+                                        .font(.labelS.weight(.black))
+                                        .textCase(.uppercase)
+                                        .foregroundStyle(Color.appPrimary)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            Image(systemName: profile.id == store.activeProfileID ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(profile.id == store.activeProfileID ? Color.appPrimary : Color.outlineVariant)
+                        }
+                        .padding(.l)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .profileGlassSurface(
+                            cornerRadius: .cornerXL,
+                            tint: Color.white.opacity(0.12)
+                        )
+                        .contentShape(RoundedRectangle(tokenRadius: .cornerXL))
                     }
+                    .buttonStyle(.plain)
                     .accessibilityElement(children: .combine)
                     .accessibilityAddTraits(.isButton)
                 }
