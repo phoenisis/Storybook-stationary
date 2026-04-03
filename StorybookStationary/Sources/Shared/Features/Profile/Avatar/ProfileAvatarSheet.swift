@@ -136,7 +136,10 @@ struct ProfileAvatarSheet: View {
         .imagePlaygroundSheet(
             isPresented: Binding(
                 get: { store.playgroundSeed != nil },
-                set: { _ in }
+                set: { isPresented in
+                    guard !isPresented else { return }
+                    store.send(.playgroundCancelled)
+                }
             ),
             concepts: playgroundConcepts,
             onCompletion: { url in

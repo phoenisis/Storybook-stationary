@@ -61,7 +61,7 @@ private struct OnboardingView: View {
 
             VStack(spacing: .xxl) {
                 VStack(spacing: .m) {
-                    Text("Storybook Stationnary")
+                    Text("Storybook Stationary")
                         .font(.displayHero.weight(.black))
                         .foregroundStyle(Color.appPrimary)
                     RoundedRectangle(tokenRadius: .cornerPill)

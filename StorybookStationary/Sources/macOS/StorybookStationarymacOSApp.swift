@@ -6,7 +6,11 @@ import SwiftUI
 struct StorybookStationarymacOSApp: App {
     init() {
         prepareDependencies {
-            try! $0.bootstrapDatabase()
+            do {
+                try $0.bootstrapDatabase()
+            } catch {
+                assertionFailure("Failed to bootstrap database: \(error)")
+            }
         }
     }
 

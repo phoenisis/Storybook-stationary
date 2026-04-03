@@ -29,7 +29,21 @@ extension AvatarImagePlaygroundClient: DependencyKey {
                 ]
             },
             loadImageData: { url in
-                try Data(contentsOf: url)
+                if url.isFileURL {
+                    let didAccessSecurityScopedResource = url.startAccessingSecurityScopedResource()
+                    defer {
+                        if didAccessSecurityScopedResource {
+                            url.stopAccessingSecurityScopedResource()
+                        }
+                    }
+
+                    return try await Task.detached(priority: .userInitiated) {
+                        try Data(contentsOf: url)
+                    }.value
+                } else {
+                    let (data, _) = try await URLSession.shared.data(from: url)
+                    return data
+                }
             }
         )
     }
