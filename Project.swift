@@ -44,7 +44,7 @@ let project = Project(
                 .package(product: "StructuredQueries"),
                 .package(product: "StructuredQueriesSQLite"),
                 .package(product: "SwiftUINavigation"),
-            ]
+            ],
             settings: .settings(base: [
                 "EXTRACT_APP_INTENTS_METADATA": "NO",
                 "SWIFT_DEFAULT_ACTOR_ISOLATION": "MainActor",
