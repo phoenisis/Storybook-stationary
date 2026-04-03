@@ -4,7 +4,9 @@ let project = Project(
     name: "Storybook stationary",
     packages: [
         .package(path: "Packages/PaperPlaygroundDesignSystem"),
+        .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.0.0"),
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "1.21.0"),
+        .package(url: "https://github.com/pointfreeco/swift-navigation", from: "2.0.0"),
     ],
     targets: [
         .target(
@@ -30,6 +32,8 @@ let project = Project(
             dependencies: [
                 .package(product: "PaperPlaygroundDesignSystem"),
                 .package(product: "ComposableArchitecture"),
+                .package(product: "CasePaths"),
+                .package(product: "SwiftUINavigation"),
             ]
         ),
         .target(
@@ -56,6 +60,8 @@ let project = Project(
             dependencies: [
                 .package(product: "PaperPlaygroundDesignSystem"),
                 .package(product: "ComposableArchitecture"),
+                .package(product: "CasePaths"),
+                .package(product: "SwiftUINavigation"),
             ]
         ),
         .target(

@@ -1,56 +1,76 @@
+import ComposableArchitecture
 import SwiftUI
+import SwiftUINavigation
 
 struct ContentView: View {
-    @State private var selectedTab = 0
-    @State private var audioLevel: CGFloat = .audioInitial
+    @Bindable var store: StoreOf<StorybookStationaryFeature>
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: $store.selectedTab) {
             mainLibraryPage
                 .tabItem {
                     Label("Library", systemImage: "books.vertical.fill")
                 }
-                .tag(0)
+                .tag(StorybookStationaryFeature.Tab.library)
 
             placeholderPage(title: "Writing", icon: "checkmark.seal.fill")
                 .tabItem {
                     Label("Writing", systemImage: "checkmark.seal.fill")
                 }
-                .tag(1)
+                .tag(StorybookStationaryFeature.Tab.writing)
 
             placeholderPage(title: "Awards", icon: "trophy.fill")
                 .tabItem {
                     Label("Awards", systemImage: "trophy.fill")
                 }
-                .tag(2)
+                .tag(StorybookStationaryFeature.Tab.awards)
 
             placeholderPage(title: "Profile", icon: "person.fill")
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
                 }
-                .tag(3)
+                .tag(StorybookStationaryFeature.Tab.profile)
+        }
+        .sheet(
+            item: Binding(projectedValue: $store.destination).profileSettings,
+            id: \.id
+        ) { $profileSettings in
+            ProfileSettingsSheet(
+                keepAudioEnabled: $profileSettings.keepAudioEnabled,
+                onClose: { store.send(.destinationDismissed) }
+            )
         }
         .paperPlaygroundTabBarStyle()
     }
 
     private var mainLibraryPage: some View {
-        ZStack {
-            Color.background.ignoresSafeArea()
+        NavigationStack(path: $store.path) {
+            ZStack {
+                Color.background.ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: .jumbo) {
-                    topBar
-                    typographyAndColors
-                    buttonsAndStates
-                    cardsAndContainers
-                    interactiveElements
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: .jumbo) {
+                        topBar
+                        typographyAndColors
+                        buttonsAndStates
+                        cardsAndContainers
+                        interactiveElements
+                    }
+                    .padding(.horizontal, .xxxl)
+                    .padding(.top, .xxxl)
+                    .padding(.bottom, .xxxl)
                 }
-                .padding(.horizontal, .xxxl)
-                .padding(.top, .xxxl)
-                .padding(.bottom, .xxxl)
-            }
 
-            PaperGrainOverlay()
+                PaperGrainOverlay()
+            }
+            .navigationTitle("Library")
+            .paperInlineNavigationBarTitleDisplayMode()
+            .navigationDestination(for: StorybookStationaryFeature.Route.self) { route in
+                switch route {
+                case let .lessonDetail(detail):
+                    LessonDetailView(detail: detail)
+                }
+            }
         }
     }
 
@@ -85,16 +105,27 @@ struct ContentView: View {
 
             Spacer(minLength: 0)
 
-            Circle()
-                .fill(Color.appPrimaryContainer)
-                .frame(width: .avatar, height: .avatar)
-                .overlay {
-                    Image(systemName: "face.smiling.fill")
-                        .foregroundStyle(Color.appOnPrimaryContainer)
-                }
-                .overlay {
-                    Circle().stroke(Color.appPrimary, lineWidth: .lineS)
-                }
+            Button("Lecon") {
+                store.send(.libraryDetailTapped)
+            }
+            .font(.labelS.weight(.black))
+            .textCase(.uppercase)
+            .buttonStyle(StickerDepthButtonStyle(color: .appPrimary))
+
+            Button {
+                store.send(.profileTapped)
+            } label: {
+                Circle()
+                    .fill(Color.appPrimaryContainer)
+                    .frame(width: .avatar, height: .avatar)
+                    .overlay {
+                        Image(systemName: "face.smiling.fill")
+                            .foregroundStyle(Color.appOnPrimaryContainer)
+                    }
+                    .overlay {
+                        Circle().stroke(Color.appPrimary, lineWidth: .lineS)
+                    }
+            }
         }
         .padding(.horizontal, .xl)
         .padding(.vertical, .l)
@@ -180,7 +211,7 @@ struct ContentView: View {
 
                 HStack(spacing: .l) {
                     Button {
-                        audioLevel = min(1.0, audioLevel + .audioStep)
+                        store.send(.binding(.set(\.audioLevel, min(1.0, store.audioLevel + .audioStep))))
                     } label: {
                         Image(systemName: "play.fill")
                             .font(.bodyM.weight(.black))
@@ -196,7 +227,7 @@ struct ContentView: View {
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.surfaceHigh)
                             Capsule().fill(Color.appPrimary)
-                                .frame(width: width * audioLevel)
+                                .frame(width: width * store.audioLevel)
                         }
                     }
                     .frame(height: .sliderTrackHeight)
@@ -304,6 +335,67 @@ struct ContentView: View {
     }
 }
 
+private struct LessonDetailView: View {
+    let detail: StorybookStationaryFeature.Route.LessonDetail
+
+    var body: some View {
+        ZStack {
+            Color.background.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: .l) {
+                Text(detail.title)
+                    .font(.headingL.weight(.bold))
+                    .foregroundStyle(Color.appPrimary)
+
+                Text(detail.description)
+                    .font(.bodyM)
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .lineSpacing(.appLineSpacing)
+            }
+            .padding(.xxxl)
+            .paperCard()
+            .padding(.xxxl)
+        }
+        .navigationTitle("Lesson")
+        .paperInlineNavigationBarTitleDisplayMode()
+    }
+}
+
+private struct ProfileSettingsSheet: View {
+    @Binding var keepAudioEnabled: Bool
+    let onClose: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Preferences") {
+                    Toggle("Keep audio preview enabled", isOn: $keepAudioEnabled)
+                }
+            }
+            .navigationTitle("Profile Settings")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done", action: onClose)
+                }
+            }
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func paperInlineNavigationBarTitleDisplayMode() -> some View {
+        #if os(iOS)
+        self.navigationBarTitleDisplayMode(.inline)
+        #else
+        self
+        #endif
+    }
+}
+
 #Preview {
-    ContentView()
+    ContentView(
+        store: Store(initialState: StorybookStationaryFeature.State()) {
+            StorybookStationaryFeature()
+        }
+    )
 }

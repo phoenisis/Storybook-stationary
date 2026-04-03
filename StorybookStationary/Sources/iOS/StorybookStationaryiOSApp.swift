@@ -1,3 +1,4 @@
+import ComposableArchitecture
 import SwiftUI
 
 @main
@@ -8,7 +9,11 @@ struct StorybookStationaryiOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(
+                store: Store(initialState: StorybookStationaryFeature.State()) {
+                    StorybookStationaryFeature()
+                }
+            )
         }
     }
 }
