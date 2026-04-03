@@ -49,11 +49,9 @@ struct StorybookProfileManagementSection: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
 
-                            Image(systemName: profile.id == store.activeProfileID ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(profile.id == store.activeProfileID ? Color.appPrimary : Color.outlineVariant)
+                            ProfileSelectionIndicator(isActive: profile.id == store.activeProfileID)
                         }
                         .padding(.l)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                         .profileGlassSurface(
                             cornerRadius: .cornerXL,
                             tint: Color.white.opacity(0.12)
@@ -114,5 +112,18 @@ struct StorybookProfileManagementSection: View {
             )
             .buttonStyle(.glassProminent)
         }
+    }
+}
+
+private struct ProfileSelectionIndicator: View {
+    let isActive: Bool
+
+    var body: some View {
+        Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(isActive ? Color.appPrimary : Color.outlineVariant)
+            .font(.bodyM.weight(.bold))
+            .scaleEffect(isActive ? 1.08 : 1.0)
+            .contentTransition(.symbolEffect(.replace))
+            .animation(.snappy(duration: 0.22), value: isActive)
     }
 }
