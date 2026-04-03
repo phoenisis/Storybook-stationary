@@ -154,6 +154,15 @@ struct AppFeature {
 
             case let .profileResolveFailed(errorMessage):
                 switch state.route {
+                case .loading:
+                    state.route = .onboarding(
+                        .init(
+                            isSaving: false,
+                            name: "",
+                            validationMessage: errorMessage
+                        )
+                    )
+
                 case var .onboarding(onboardingState):
                     onboardingState.isSaving = false
                     onboardingState.validationMessage = errorMessage

@@ -7,6 +7,9 @@ struct AppRootView: View {
     var body: some View {
         Group {
             switch store.route {
+            case .loading:
+                LoadingView()
+
             case .onboarding:
                 if let onboardingStore = store.scope(state: \.route.onboarding, action: \.onboarding) {
                     OnboardingView(store: onboardingStore)
@@ -20,6 +23,31 @@ struct AppRootView: View {
         }
         .task {
             store.send(.task)
+        }
+    }
+}
+
+private struct LoadingView: View {
+    var body: some View {
+        ZStack {
+            Color.surface.opacity(0.5).ignoresSafeArea()
+
+            VStack(spacing: .l) {
+                ProgressView()
+                    .controlSize(.large)
+                Text("Chargement...")
+                    .font(.bodyM.weight(.semibold))
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+            .padding(.xxxl)
+            .background(Color.background)
+            .clipShape(RoundedRectangle(tokenRadius: .cornerDrawer))
+            .overlay {
+                RoundedRectangle(tokenRadius: .cornerDrawer)
+                    .stroke(.white, lineWidth: .lineM)
+            }
+            .notebookShadow()
+            .padding(.xxxl)
         }
     }
 }
