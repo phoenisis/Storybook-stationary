@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "skills": {
+    "analyze-selective-testing": {
+      "source": "tuist/agent-skills",
+      "sourceType": "github",
+      "computedHash": "5a01043979e3a1a062cf8f46cb2c6008612de254c01c3e77cc355c5a01ad2a5f"
+    },
+    "compare-builds": {
+      "source": "tuist/agent-skills",
+      "sourceType": "github",
+      "computedHash": "64c4a0498b267b0b3d160c1c8b364b4244610aab32f2129d4d087e386e84ad27"
+    },
+    "compare-bundles": {
+      "source": "tuist/agent-skills",
+      "sourceType": "github",
+      "computedHash": "eee64bf22916bffb14b02c20a99c97f65ee0b6663cc072781f8a38c5392fe627"
+    },
+    "compare-cache-runs": {
+      "source": "tuist/agent-skills",
+      "sourceType": "github",
+      "computedHash": "f0bb495c73680aac4180135121319d4654995cfb153f790244c7c55c5b81e26b"
+    },
+    "compare-generations": {
+      "source": "tuist/agent-skills",
+      "sourceType": "github",
+      "computedHash": "ee26d5774f5cc190720953a88b20fdc466f152812618baa9a50bb9d0cae419ce"
+    },
+    "compare-test-case": {
+      "source": "tuist/agent-skills",
+      "sourceType": "github",
+      "computedHash": "d25446251b714ef7b646de9f19750e3e0f4da56f12aafd5745ae63af59d5eb05"
+    },
+    "compare-test-runs": {
+      "source": "tuist/agent-skills",
+      "sourceType": "github",
+      "computedHash": "cc312629bfd221a33b97805aa6f126406adf4f78a85552eb9aee4fd3b4af2a70"
+    },
+    "fix-flaky-tests": {
+      "source": "tuist/agent-skills",
+      "sourceType": "github",
+      "computedHash": "6d3e97bc84f2cdc444668915cd156670e0680db4a0cb010b65089d36d5d0d7f3"
+    },
+    "using-tuist-generated-projects": {
+      "source": "tuist/agent-skills",
+      "sourceType": "github",
+      "computedHash": "333f414afa906998e8e006fd346abab7d1b65d0ac2835e9fe466ae99f6d7d502"
+    }
+  }
+}
