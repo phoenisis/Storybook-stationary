@@ -1,6 +1,5 @@
 import ComposableArchitecture
 import SwiftUI
-import SwiftUINavigation
 
 struct ContentView: View {
     @Bindable var store: StoreOf<StorybookStationaryFeature>
@@ -31,22 +30,10 @@ struct ContentView: View {
                 }
                 .tag(StorybookStationaryFeature.Tab.profile)
         }
-        .sheet(
-            item: Binding(projectedValue: $store.destination).avatarEditor,
-            id: \.id
-        ) { $avatarEditor in
-            ProfileAvatarSheet(
-                state: $avatarEditor,
-                activeProfileName: store.activeProfileName,
-                onClose: { store.send(.destinationDismissed) },
-                onAgeChanged: { age in store.send(.avatarEditorAgeChanged(age)) },
-                onGenderChanged: { gender in store.send(.avatarEditorGenderChanged(gender)) },
-                onGenerate: { store.send(.avatarGenerateTapped) },
-                onPlaygroundCompleted: { url in store.send(.avatarPlaygroundCompleted(url)) },
-                onPlaygroundCancelled: { store.send(.avatarPlaygroundCancelled) },
-                onPlaygroundFailed: { message in store.send(.avatarPlaygroundFailed(message)) },
-                onSave: { store.send(.avatarSaveTapped) }
-            )
+        .sheet(item: $store.destination, id: \.id) { _ in
+            if let avatarStore = store.scope(state: \.destination, action: \.destination) {
+                ProfileAvatarSheet(store: avatarStore)
+            }
         }
         .paperPlaygroundTabBarStyle()
     }

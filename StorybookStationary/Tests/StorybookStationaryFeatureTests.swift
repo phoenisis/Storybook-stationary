@@ -1,5 +1,4 @@
 import ComposableArchitecture
-import DependenciesTestSupport
 import Foundation
 import IdentifiedCollections
 import Testing
@@ -15,12 +14,12 @@ struct StorybookStationaryFeatureTests {
         }
 
         await store.send(.avatarTapped) {
-            $0.destination = .avatarEditor(
-                .init(
-                    selectedAge: 5,
-                    selectedGender: .neutral,
-                    generatedAvatar: .fallback
-                )
+            $0.destination = .init(
+                activeProfileName: "",
+                selectedAge: 5,
+                selectedGender: .neutral,
+                originalAvatar: .fallback,
+                originalAvatarImageData: .init()
             )
         }
     }
@@ -133,88 +132,18 @@ struct StorybookStationaryFeatureTests {
     }
 
     @Test
-    func avatarGenerateTappedCreatesNewNonceAndPresentsPlayground() async {
+    func avatarSaveDelegatePropagatesToParentDelegate() async {
+        let avatarData = Data("avatar".utf8)
+        let avatar = UserAvatarStyle.fallback
+
         var state = StorybookStationaryFeature.State()
-        state.activeProfileName = "Lina"
-        state.destination = .avatarEditor(
-            .init(
-                selectedAge: 5,
-                selectedGender: .neutral,
-                generatedAvatar: .fallback,
-                originalAvatar: .fallback,
-                originalAvatarImageData: Data("original".utf8)
-            )
-        )
-
-        let store = TestStore(initialState: state) {
-            StorybookStationaryFeature()
-        } withDependencies: {
-            $0.uuid = .incrementing
-        }
-
-        await store.send(.avatarGenerateTapped) {
-            guard case var .avatarEditor(editor) = $0.destination else {
-                Issue.record("Expected avatar editor destination.")
-                return
-            }
-            editor.generationAttempt = 1
-            editor.isGenerating = true
-            editor.message = nil
-            editor.playgroundSeed = AvatarPlaygroundSeed(
-                name: "Lina",
-                gender: .neutral,
-                age: 5,
-                variationNonce: UUID(0).uuidString
-            )
-            $0.destination = .avatarEditor(editor)
-        }
-
-        await store.send(.avatarGenerateTapped) {
-            guard case var .avatarEditor(editor) = $0.destination else {
-                Issue.record("Expected avatar editor destination.")
-                return
-            }
-            editor.generationAttempt = 2
-            editor.isGenerating = true
-            editor.message = nil
-            editor.playgroundSeed = AvatarPlaygroundSeed(
-                name: "Lina",
-                gender: .neutral,
-                age: 5,
-                variationNonce: UUID(1).uuidString
-            )
-            $0.destination = .avatarEditor(editor)
-        }
-    }
-
-    @Test
-    func selectingSameImageDataShowsInfoAndKeepsSaveDisabled() async {
-        var state = StorybookStationaryFeature.State()
-        let originalData = Data("same-image".utf8)
-        state.destination = .avatarEditor(
-            .init(
-                selectedAge: 5,
-                selectedGender: .neutral,
-                generatedAvatar: .fallback,
-                originalAvatar: .fallback,
-                originalAvatarImageData: originalData
-            )
-        )
+        state.destination = .init()
 
         let store = TestStore(initialState: state) {
             StorybookStationaryFeature()
         }
 
-        await store.send(.avatarPlaygroundDataResponse(.success(originalData))) {
-            guard case var .avatarEditor(editor) = $0.destination else {
-                Issue.record("Expected avatar editor destination.")
-                return
-            }
-            editor.isGenerating = false
-            editor.isLoadingGeneratedImage = false
-            editor.generatedAvatarImageData = originalData
-            editor.message = "Resultat identique. Regenerer pour obtenir une nouvelle image."
-            $0.destination = .avatarEditor(editor)
-        }
+        await store.send(.destination(.delegate(.save(avatar, avatarData))))
+        await store.receive(.delegate(.updateAvatar(avatar, avatarData)))
     }
 }

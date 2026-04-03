@@ -189,12 +189,12 @@ struct AppFeature {
                 case var .main(mainState):
                     mainState.isPersistingProfile = false
                     mainState.profileMessage = errorMessage
-                    if case var .avatarEditor(editor) = mainState.destination {
+                    if var editor = mainState.destination {
                         editor.isGenerating = false
                         editor.isSaving = false
                         editor.isLoadingGeneratedImage = false
                         editor.message = errorMessage
-                        mainState.destination = .avatarEditor(editor)
+                        mainState.destination = editor
                     }
                     state.route = .main(mainState)
                 }

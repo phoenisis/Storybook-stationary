@@ -62,11 +62,12 @@ struct StorybookAvatarArtwork: View {
     var imageData: Data? = nil
 
     var body: some View {
-        ZStack {
+        Group {
             if let platformImage = PlatformAvatarImage(data: imageData ?? .init()) {
                 Image(platformAvatarImage: platformImage)
                     .resizable()
                     .scaledToFill()
+                    .clipShape(.rect(cornerRadius: 80))
             } else {
                 Circle()
                     .fill(Color.appPrimary.opacity(0.14))
@@ -77,11 +78,6 @@ struct StorybookAvatarArtwork: View {
                     }
             }
         }
-        .clipShape(Circle())
-        .overlay {
-            Circle().stroke(.white, lineWidth: .lineM)
-        }
-        .padding(.xxs)
         .profileGlassSurface(cornerRadius: 80, tint: .white.opacity(0.24))
     }
 }

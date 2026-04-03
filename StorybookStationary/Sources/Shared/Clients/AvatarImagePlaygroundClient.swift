@@ -18,17 +18,14 @@ extension AvatarImagePlaygroundClient: DependencyKey {
     static var liveValue: AvatarImagePlaygroundClient {
         AvatarImagePlaygroundClient(
             concepts: { seed in
-                let trimmedName = seed.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 let normalizedAge = min(max(seed.age, 3), 7)
 
                 return [
-                    .text("cartoon portrait of a child"),
-                    .text("friendly warm expression"),
-                    .text("child named \(trimmedName.isEmpty ? "Ami" : trimmedName)"),
-                    .text("gender preference: \(seed.gender.rawValue)"),
+                    .text("cartoon portrait of a young child"),
                     .text("age: \(normalizedAge) years old"),
+                    .text("gender: \(seed.gender.rawValue)"),
+                    .text("friendly warm expression"),
                     .text("storybook style colorful illustration"),
-                    .text("variation-\(seed.variationNonce)"),
                 ]
             },
             loadImageData: { url in
