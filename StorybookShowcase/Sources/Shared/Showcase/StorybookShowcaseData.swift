@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 struct StorybookShowcaseData {
     static let colors: [ShowcaseColorToken] = [
         .init(name: "appPrimary", color: .appPrimary, text: .white),

@@ -1,73 +1,37 @@
+import ComposableArchitecture
 import SwiftUI
 
-struct ContentView: View {
-    @State private var selectedTab = 0
-    @State private var audioLevel: CGFloat = .audioInitial
+struct StorybookStationaryLibraryTabView: View {
+    @Bindable var store: StoreOf<StorybookStationaryFeature>
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            mainLibraryPage
-                .tabItem {
-                    Label("Library", systemImage: "books.vertical.fill")
-                }
-                .tag(0)
+        NavigationStack(path: $store.path) {
+            ZStack {
+                Color.background.ignoresSafeArea()
 
-            placeholderPage(title: "Writing", icon: "checkmark.seal.fill")
-                .tabItem {
-                    Label("Writing", systemImage: "checkmark.seal.fill")
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: .jumbo) {
+                        topBar
+                        typographyAndColors
+                        buttonsAndStates
+                        cardsAndContainers
+                        interactiveElements
+                    }
+                    .padding(.horizontal, .xxxl)
+                    .padding(.top, .xxxl)
+                    .padding(.bottom, .xxxl)
                 }
-                .tag(1)
 
-            placeholderPage(title: "Awards", icon: "trophy.fill")
-                .tabItem {
-                    Label("Awards", systemImage: "trophy.fill")
-                }
-                .tag(2)
-
-            placeholderPage(title: "Profile", icon: "person.fill")
-                .tabItem {
-                    Label("Profile", systemImage: "person.fill")
-                }
-                .tag(3)
-        }
-        .paperPlaygroundTabBarStyle()
-    }
-
-    private var mainLibraryPage: some View {
-        ZStack {
-            Color.background.ignoresSafeArea()
-
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: .jumbo) {
-                    topBar
-                    typographyAndColors
-                    buttonsAndStates
-                    cardsAndContainers
-                    interactiveElements
-                }
-                .padding(.horizontal, .xxxl)
-                .padding(.top, .xxxl)
-                .padding(.bottom, .xxxl)
+                PaperGrainOverlay()
             }
-
-            PaperGrainOverlay()
-        }
-    }
-
-    private func placeholderPage(title: String, icon: String) -> some View {
-        ZStack {
-            Color.background.ignoresSafeArea()
-            VStack(spacing: .l) {
-                Image(systemName: icon)
-                    .font(.displayHero.weight(.black))
-                    .foregroundStyle(Color.appPrimary)
-                Text(title)
-                    .font(.headingL.weight(.bold))
-                    .foregroundStyle(Color.onSurface)
+            .navigationTitle("Library")
+            .paperInlineNavigationBarTitleDisplayMode()
+            .navigationDestination(for: StorybookStationaryFeature.Route.self) { route in
+                switch route {
+                case let .lessonDetail(detail):
+                    LessonDetailView(detail: detail)
+                }
             }
-            .padding(.xxxl)
-            .paperCard()
-            .padding(.xxxl)
         }
     }
 
@@ -77,24 +41,42 @@ struct ContentView: View {
                 .font(.title3.weight(.black))
                 .foregroundStyle(Color.appPrimary)
 
-            Text("Bibliotheque")
-                .font(.appTitle.weight(.black))
-                .tracking(.trackCompact)
-                .textCase(.uppercase)
-                .foregroundStyle(Color.appPrimary)
+            VStack(alignment: .leading, spacing: .xxs) {
+                Text("Bibliotheque")
+                    .font(.appTitle.weight(.black))
+                    .tracking(.trackCompact)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Color.appPrimary)
+                if !store.activeProfileName.isEmpty {
+                    Text(store.activeProfileName)
+                        .font(.bodyS.weight(.semibold))
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+            }
 
             Spacer(minLength: 0)
 
-            Circle()
-                .fill(Color.appPrimaryContainer)
-                .frame(width: .avatar, height: .avatar)
-                .overlay {
-                    Image(systemName: "face.smiling.fill")
-                        .foregroundStyle(Color.appOnPrimaryContainer)
-                }
-                .overlay {
-                    Circle().stroke(Color.appPrimary, lineWidth: .lineS)
-                }
+            Button("Lecon") {
+                store.send(.libraryDetailTapped)
+            }
+            .font(.labelS.weight(.black))
+            .textCase(.uppercase)
+            .buttonStyle(StickerDepthButtonStyle(color: .appPrimary))
+
+            Button {
+                store.send(.profileTapped)
+            } label: {
+                Circle()
+                    .fill(Color.appPrimaryContainer)
+                    .frame(width: .avatar, height: .avatar)
+                    .overlay {
+                        Image(systemName: "face.smiling.fill")
+                            .foregroundStyle(Color.appOnPrimaryContainer)
+                    }
+                    .overlay {
+                        Circle().stroke(Color.appPrimary, lineWidth: .lineS)
+                    }
+            }
         }
         .padding(.horizontal, .xl)
         .padding(.vertical, .l)
@@ -180,7 +162,7 @@ struct ContentView: View {
 
                 HStack(spacing: .l) {
                     Button {
-                        audioLevel = min(1.0, audioLevel + .audioStep)
+                        store.send(.binding(.set(\.audioLevel, min(1.0, store.audioLevel + .audioStep))))
                     } label: {
                         Image(systemName: "play.fill")
                             .font(.bodyM.weight(.black))
@@ -196,7 +178,7 @@ struct ContentView: View {
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.surfaceHigh)
                             Capsule().fill(Color.appPrimary)
-                                .frame(width: width * audioLevel)
+                                .frame(width: width * store.audioLevel)
                         }
                     }
                     .frame(height: .sliderTrackHeight)
@@ -304,6 +286,27 @@ struct ContentView: View {
     }
 }
 
-#Preview {
-    ContentView()
+struct LessonDetailView: View {
+    let detail: StorybookStationaryFeature.Route.LessonDetail
+
+    var body: some View {
+        ZStack {
+            Color.background.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: .l) {
+                Text(detail.title)
+                    .font(.headingL.weight(.bold))
+                    .foregroundStyle(Color.appPrimary)
+
+                Text(detail.description)
+                    .font(.bodyM)
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .lineSpacing(.appLineSpacing)
+            }
+            .padding(.xxxl)
+            .paperCard()
+            .padding(.xxxl)
+        }
+        .navigationTitle("Lesson")
+        .paperInlineNavigationBarTitleDisplayMode()
+    }
 }
