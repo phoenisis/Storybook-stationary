@@ -20,7 +20,7 @@ struct StorybookProfileStatsSection: View {
                 }
             }
             .padding(.xxl)
-            .profileGlassSurface(tint: Color.white.opacity(0.2))
+            .profileGlassSurface(tint: Color.white.opacity(0.28))
         }
     }
 
@@ -65,15 +65,15 @@ private struct StatCard: View {
 
                 Text(stat.subtitle)
                     .font(.labelS.weight(.black))
-                    .foregroundStyle(accentColor)
+                    .foregroundStyle(Color.onSurfaceVariant)
 
                 Text(stat.value)
                     .font(.metricValue.weight(.black))
-                    .foregroundStyle(accentColor)
+                    .foregroundStyle(Color.onSurface)
             }
             .padding(.l)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(accentColor.opacity(0.1))
+            .background(accentColor.opacity(0.06))
             .overlay(alignment: .leading) {
                 Rectangle()
                     .fill(accentColor)
@@ -84,7 +84,7 @@ private struct StatCard: View {
             .clipShape(RoundedRectangle(tokenRadius: .cornerXL))
             .profileGlassSurface(
                 cornerRadius: .cornerXL,
-                tint: accentColor.opacity(0.12),
+                tint: Color.white.opacity(0.3),
                 interactive: true
             )
         }

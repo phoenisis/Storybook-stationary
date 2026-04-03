@@ -34,7 +34,7 @@ struct StorybookProfileHeroSection: View {
 
                 Text(activeProfileName.isEmpty ? "Mon profil" : activeProfileName)
                     .font(.headingL.weight(.black))
-                    .foregroundStyle(Color.appPrimary)
+                    .foregroundStyle(Color.onSurface)
                     .lineLimit(1)
                     .minimumScaleFactor(.minimumScale)
 
@@ -53,7 +53,7 @@ struct StorybookProfileHeroSection: View {
             }
             .padding(.xxl)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .profileGlassSurface(tint: Color.appPrimary.opacity(0.18))
+            .profileGlassSurface(tint: Color.appPrimary.opacity(0.22))
         }
     }
 }
