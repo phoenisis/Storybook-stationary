@@ -16,7 +16,9 @@ struct StorybookStationaryiOSApp: App {
             AppRootView(
                 store: Store(initialState: AppFeature.State()) {
                     AppFeature()
+                        ._printChanges()
                 }
+                
             )
         }
     }

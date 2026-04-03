@@ -2,13 +2,10 @@ import CasePaths
 import ComposableArchitecture
 import Foundation
 import IdentifiedCollections
-import SQLiteData
 
 @Reducer
 struct AppFeature {
-    @Dependency(\.date.now) var now
-    @Dependency(\.defaultDatabase) var database
-    @Dependency(\.uuid) var uuid
+    @Dependency(\.userProfileClient) var userProfileClient
 
     @ObservableState
     struct State: Equatable {
@@ -27,9 +24,9 @@ struct AppFeature {
         case onboarding(OnboardingFeature.Action)
         case main(StorybookStationaryFeature.Action)
         case profileResolveFailed(String)
-        case profileResolved(AppSession)
+        case profileResolved(UserProfileSession)
         case sessionLoadFailed(String)
-        case sessionLoaded(AppSession?)
+        case sessionLoaded(UserProfileSession?)
         case task
     }
 
@@ -55,7 +52,7 @@ struct AppFeature {
                         childEffect,
                         .run { send in
                             do {
-                                let session = try await resolveProfile(named: name)
+                                let session = try await userProfileClient.resolveProfile(name)
                                 await send(.profileResolved(session))
                             } catch {
                                 await send(.profileResolveFailed(error.localizedDescription))
@@ -83,7 +80,7 @@ struct AppFeature {
                         childEffect,
                         .run { send in
                             do {
-                                let session = try await resolveProfile(named: name)
+                                let session = try await userProfileClient.resolveProfile(name)
                                 await send(.profileResolved(session))
                             } catch {
                                 await send(.profileResolveFailed(error.localizedDescription))
@@ -96,7 +93,10 @@ struct AppFeature {
                         childEffect,
                         .run { send in
                             do {
-                                let session = try await switchProfile(id: id)
+                                var session = try await userProfileClient.switchProfile(id)
+                                if let selected = session.profiles.first(where: { $0.id == id }) {
+                                    session.active = selected
+                                }
                                 await send(.profileResolved(session))
                             } catch {
                                 await send(.profileResolveFailed(error.localizedDescription))
@@ -111,7 +111,7 @@ struct AppFeature {
             case .task:
                 return .run { send in
                     do {
-                        let session = try await loadSession()
+                        let session = try await userProfileClient.loadSession()
                         await send(.sessionLoaded(session))
                     } catch {
                         await send(.sessionLoadFailed(error.localizedDescription))
@@ -123,13 +123,13 @@ struct AppFeature {
                     state.route = .onboarding(.init())
                     return .none
                 }
-                state.route = .main(
-                    .init(
-                        activeProfileID: session.active.id,
-                        activeProfileName: session.active.name,
-                        profiles: .init(uniqueElements: session.profiles)
-                    )
+                var mainState = StorybookStationaryFeature.State()
+                mainState.applySession(
+                    activeProfileID: session.active.id,
+                    activeProfileName: session.active.name,
+                    profiles: .init(uniqueElements: session.profiles)
                 )
+                state.route = .main(mainState)
                 return .none
 
             case let .sessionLoadFailed(errorMessage):
@@ -143,13 +143,24 @@ struct AppFeature {
                 return .none
 
             case let .profileResolved(session):
-                state.route = .main(
-                    .init(
+                switch state.route {
+                case .loading, .onboarding:
+                    var mainState = StorybookStationaryFeature.State()
+                    mainState.applySession(
                         activeProfileID: session.active.id,
                         activeProfileName: session.active.name,
                         profiles: .init(uniqueElements: session.profiles)
                     )
-                )
+                    state.route = .main(mainState)
+
+                case var .main(mainState):
+                    mainState.applySession(
+                        activeProfileID: session.active.id,
+                        activeProfileName: session.active.name,
+                        profiles: .init(uniqueElements: session.profiles)
+                    )
+                    state.route = .main(mainState)
+                }
                 return .none
 
             case let .profileResolveFailed(errorMessage):
@@ -174,94 +185,6 @@ struct AppFeature {
                     state.route = .main(mainState)
                 }
                 return .none
-            }
-        }
-    }
-
-    private func loadSession() async throws -> AppSession? {
-        try await database.read { db in
-            let profiles = try UserProfile
-                .order { $0.lastUsedAt.desc() }
-                .fetchAll(db)
-            guard let activeProfile = profiles.first else { return nil }
-            return .init(active: activeProfile, profiles: profiles)
-        }
-    }
-
-    private func resolveProfile(named rawName: String) async throws -> AppSession {
-        let trimmedName = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalizedName = trimmedName.lowercased()
-        return try await database.write { db in
-            var profiles = try UserProfile.fetchAll(db)
-            if let existing = profiles.first(where: { $0.name.lowercased() == normalizedName }) {
-                var updatedProfile = existing
-                updatedProfile.lastUsedAt = now
-                try UserProfile
-                    .upsert { updatedProfile }
-                    .execute(db)
-            } else {
-                let profile = UserProfile(
-                    id: uuid(),
-                    name: trimmedName,
-                    createdAt: now,
-                    lastUsedAt: now
-                )
-                try UserProfile
-                    .upsert { profile }
-                    .execute(db)
-            }
-
-            profiles = try UserProfile
-                .order { $0.lastUsedAt.desc() }
-                .fetchAll(db)
-            guard let activeProfile = profiles.first else {
-                throw AppError.unexpectedMissingProfile
-            }
-            return .init(active: activeProfile, profiles: profiles)
-        }
-    }
-
-    private func switchProfile(id: UserProfile.ID) async throws -> AppSession {
-        try await database.write { db in
-            var activeProfile = try UserProfile
-                .where { $0.id.eq(id) }
-                .fetchOne(db)
-            guard var profile = activeProfile else {
-                throw AppError.profileNotFound
-            }
-            profile.lastUsedAt = now
-            try UserProfile
-                .upsert { profile }
-                .execute(db)
-
-            let profiles = try UserProfile
-                .order { $0.lastUsedAt.desc() }
-                .fetchAll(db)
-            activeProfile = profiles.first
-            guard let activeProfile else {
-                throw AppError.unexpectedMissingProfile
-            }
-            return .init(active: activeProfile, profiles: profiles)
-        }
-    }
-}
-
-extension AppFeature {
-    struct AppSession: Equatable, Sendable {
-        var active: UserProfile
-        var profiles: [UserProfile]
-    }
-
-    enum AppError: LocalizedError {
-        case profileNotFound
-        case unexpectedMissingProfile
-
-        var errorDescription: String? {
-            switch self {
-            case .profileNotFound:
-                return "Ce profil est introuvable."
-            case .unexpectedMissingProfile:
-                return "Aucun profil actif n'a pu etre charge."
             }
         }
     }

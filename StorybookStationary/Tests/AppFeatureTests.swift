@@ -37,7 +37,7 @@ struct AppFeatureTests {
     func onboardingCreatesProfileAndEntersMain() async throws {
         try clearProfiles()
 
-        let store = TestStore(initialState: AppFeature.State()) {
+        let store = TestStore(initialState: AppFeature.State(route: .onboarding(.init()))) {
             AppFeature()
         }
         store.exhaustivity = .off
@@ -58,7 +58,7 @@ struct AppFeatureTests {
     func duplicateNameReusesExistingProfile() async throws {
         try clearProfiles()
 
-        let store = TestStore(initialState: AppFeature.State()) {
+        let store = TestStore(initialState: AppFeature.State(route: .onboarding(.init()))) {
             AppFeature()
         }
         store.exhaustivity = .off
