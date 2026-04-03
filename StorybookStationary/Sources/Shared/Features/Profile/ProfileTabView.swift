@@ -132,7 +132,6 @@ struct ProfileAvatarSheet: View {
 
                     HStack {
                         StorybookAvatarArtwork(
-                            style: state.generatedAvatar ?? state.originalAvatar,
                             imageData: state.generatedAvatarImageData ?? state.originalAvatarImageData
                         )
                         .frame(maxWidth: 200)

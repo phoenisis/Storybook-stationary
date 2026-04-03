@@ -135,29 +135,39 @@ private struct ProfileSelectionIndicator: View {
 }
 
 private struct ProfileMiniAvatar: View {
+    private enum Layout {
+        static let size: CGFloat = 42
+        static let badgeSize: CGFloat = 16
+    }
+
     let style: UserAvatarStyle
     let imageData: Data
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
+        Group {
             if let platformImage = PlatformAvatarImage(data: imageData) {
                 Image(platformAvatarImage: platformImage)
                     .resizable()
-                    .scaledToFill()
-                    .clipShape(Circle())
-                    .overlay {
-                        Circle().stroke(.white.opacity(0.95), lineWidth: .lineS)
-                    }
+                    .scaledToFit()
             } else {
-                StorybookCartoonAvatarFace(style: style)
+                Circle()
+                    .fill(Color.appPrimary.opacity(0.14))
                     .overlay {
-                        Circle().stroke(.white.opacity(0.95), lineWidth: .lineS)
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(Color.appPrimary.opacity(0.7))
                     }
             }
-
+        }
+        .frame(width: Layout.size, height: Layout.size)
+        .clipShape(Circle())
+        .overlay {
+            Circle().stroke(.white.opacity(0.95), lineWidth: .lineS)
+        }
+        .overlay(alignment: .bottomTrailing) {
             Circle()
                 .fill(Color.background.opacity(0.95))
-                .frame(width: 16, height: 16)
+                .frame(width: Layout.badgeSize, height: Layout.badgeSize)
                 .overlay {
                     Image(systemName: style.accessorySymbolName)
                         .font(.system(size: 8, weight: .bold))

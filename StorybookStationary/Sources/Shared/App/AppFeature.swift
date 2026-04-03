@@ -10,6 +10,28 @@ struct AppFeature {
     @ObservableState
     struct State: Equatable {
         var route: Route = .loading
+
+        var onboarding: OnboardingFeature.State? {
+            get {
+                guard case let .onboarding(state) = route else { return nil }
+                return state
+            }
+            set {
+                guard let newValue, case .onboarding = route else { return }
+                route = .onboarding(newValue)
+            }
+        }
+
+        var main: StorybookStationaryFeature.State? {
+            get {
+                guard case let .main(state) = route else { return nil }
+                return state
+            }
+            set {
+                guard let newValue, case .main = route else { return }
+                route = .main(newValue)
+            }
+        }
     }
 
     @CasePathable
@@ -30,102 +52,67 @@ struct AppFeature {
         case task
     }
 
-    private let onboardingReducer = OnboardingFeature()
-    private let mainReducer = StorybookStationaryFeature()
-
     var body: some Reducer<State, Action> {
         Reduce { state, action in
             switch action {
             case let .onboarding(childAction):
-                guard case var .onboarding(onboardingState) = state.route else {
-                    return .none
-                }
-
-                let childEffect = onboardingReducer
-                    .reduce(into: &onboardingState, action: childAction)
-                    .map(Action.onboarding)
-                state.route = .onboarding(onboardingState)
-
                 switch childAction {
                 case let .delegate(.submitName(name)):
-                    return .merge(
-                        childEffect,
-                        .run { send in
-                            do {
-                                let session = try await userProfileClient.resolveProfile(name)
-                                await send(.profileResolved(session))
-                            } catch {
-                                await send(.profileResolveFailed(error.localizedDescription))
-                            }
+                    return .run { send in
+                        do {
+                            let session = try await userProfileClient.resolveProfile(name)
+                            await send(.profileResolved(session))
+                        } catch {
+                            await send(.profileResolveFailed(error.localizedDescription))
                         }
-                    )
+                    }
 
                 default:
-                    return childEffect
+                    return .none
                 }
 
             case let .main(childAction):
-                guard case var .main(mainState) = state.route else {
-                    return .none
-                }
-
-                let childEffect = mainReducer
-                    .reduce(into: &mainState, action: childAction)
-                    .map(Action.main)
-                state.route = .main(mainState)
-
                 switch childAction {
                 case let .delegate(.createProfile(name)):
-                    return .merge(
-                        childEffect,
-                        .run { send in
-                            do {
-                                let session = try await userProfileClient.resolveProfile(name)
-                                await send(.profileResolved(session))
-                            } catch {
-                                await send(.profileResolveFailed(error.localizedDescription))
-                            }
+                    return .run { send in
+                        do {
+                            let session = try await userProfileClient.resolveProfile(name)
+                            await send(.profileResolved(session))
+                        } catch {
+                            await send(.profileResolveFailed(error.localizedDescription))
                         }
-                    )
-
-                case let .delegate(.switchProfile(id)):
-                    return .merge(
-                        childEffect,
-                        .run { send in
-                            do {
-                                var session = try await userProfileClient.switchProfile(id)
-                                if let selected = session.profiles.first(where: { $0.id == id }) {
-                                    session.active = selected
-                                }
-                                await send(.profileResolved(session))
-                            } catch {
-                                await send(.profileResolveFailed(error.localizedDescription))
-                            }
-                        }
-                    )
-
-                case let .delegate(.updateAvatar(avatar, avatarImageData)):
-                    guard let activeProfileID = mainState.activeProfileID else {
-                        return .merge(
-                            childEffect,
-                            .send(.profileResolveFailed(UserProfileClientError.unexpectedMissingProfile.localizedDescription))
-                        )
                     }
 
-                    return .merge(
-                        childEffect,
-                        .run { send in
-                            do {
-                                let session = try await userProfileClient.updateAvatar(activeProfileID, avatar, avatarImageData)
-                                await send(.profileResolved(session))
-                            } catch {
-                                await send(.profileResolveFailed(error.localizedDescription))
+                case let .delegate(.switchProfile(id)):
+                    return .run { send in
+                        do {
+                            var session = try await userProfileClient.switchProfile(id)
+                            if let selected = session.profiles.first(where: { $0.id == id }) {
+                                session.active = selected
                             }
+                            await send(.profileResolved(session))
+                        } catch {
+                            await send(.profileResolveFailed(error.localizedDescription))
                         }
-                    )
+                    }
+
+                case let .delegate(.updateAvatar(avatar, avatarImageData)):
+                    guard case let .main(mainState) = state.route,
+                          let activeProfileID = mainState.activeProfileID else {
+                        return .send(.profileResolveFailed(UserProfileClientError.unexpectedMissingProfile.localizedDescription))
+                    }
+
+                    return .run { send in
+                        do {
+                            let session = try await userProfileClient.updateAvatar(activeProfileID, avatar, avatarImageData)
+                            await send(.profileResolved(session))
+                        } catch {
+                            await send(.profileResolveFailed(error.localizedDescription))
+                        }
+                    }
 
                 default:
-                    return childEffect
+                    return .none
                 }
 
             case .task:
@@ -213,6 +200,12 @@ struct AppFeature {
                 }
                 return .none
             }
+        }
+        .ifLet(\.onboarding, action: \.onboarding) {
+            OnboardingFeature()
+        }
+        .ifLet(\.main, action: \.main) {
+            StorybookStationaryFeature()
         }
     }
 }
