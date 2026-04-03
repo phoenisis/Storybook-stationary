@@ -37,7 +37,7 @@ public enum PaperPlaygroundTokens {
         public static let swatchHeight: CGFloat = 66
         public static let progressRowHeight: CGFloat = 34
         public static let sliderTrackHeight: CGFloat = 10
-        public static let displayHero: CGFloat = 82
+        public static let displayHero: CGFloat = 64
         public static let metricValue: CGFloat = 44
         public static let bottomInset: CGFloat = 140
     }
