@@ -6,6 +6,9 @@ import SwiftUI
 
 @Reducer
 struct StorybookStationaryFeature {
+    @Dependency(\.avatarImagePlaygroundClient) var avatarImagePlaygroundClient
+    @Dependency(\.uuid) var uuid
+
     struct ProfileStat: Equatable, Identifiable {
         enum Accent: Equatable {
             case blue
@@ -58,18 +61,54 @@ struct StorybookStationaryFeature {
     @CasePathable
     @dynamicMemberLookup
     enum Destination: Equatable {
-        case profileSettings(ProfileSettings)
+        case avatarEditor(AvatarEditor)
 
-        struct ProfileSettings: Equatable {
+        struct AvatarEditor: Equatable {
             let id = UUID()
-            var keepAudioEnabled = true
+            var selectedAge = 5
+            var selectedGender: AvatarGender = .neutral
+            var generatedAvatar: UserAvatarStyle?
+            var generatedAvatarImageData: Data?
+            var generationAttempt = 0
+            var isGenerating = false
+            var isLoadingGeneratedImage = false
+            var isSaving = false
+            var message: String?
+            var originalAvatar: UserAvatarStyle = .fallback
+            var originalAvatarImageData: Data = .init()
+            var playgroundSeed: AvatarPlaygroundSeed?
         }
+    }
+
+    enum AvatarPlaygroundResponse: Equatable {
+        case failure(String)
+        case success(Data)
+    }
+
+    static func makeAvatarFallbackStyle(from editor: Destination.AvatarEditor) -> UserAvatarStyle {
+        UserAvatarStyle(
+            age: min(max(editor.selectedAge, 3), 7),
+            gender: editor.selectedGender,
+            accessorySymbolName: editor.originalAvatar.accessorySymbolName,
+            symbolName: editor.originalAvatar.symbolName,
+            primaryHex: editor.originalAvatar.primaryHex,
+            secondaryHex: editor.originalAvatar.secondaryHex
+        )
+    }
+
+    static func canSaveAvatar(_ editor: Destination.AvatarEditor) -> Bool {
+        guard let generatedData = editor.generatedAvatarImageData, !generatedData.isEmpty else {
+            return false
+        }
+        return generatedData != editor.originalAvatarImageData
     }
 
     @ObservableState
     struct State: Equatable {
         var activeProfileID: UserProfile.ID?
         var activeProfileName = ""
+        var activeAvatar: UserAvatarStyle = .fallback
+        var activeAvatarImageData: Data = .init()
         var audioLevel: CGFloat = .audioInitial
         var destination: Destination?
         var isPersistingProfile = false
@@ -107,6 +146,8 @@ struct StorybookStationaryFeature {
             self.isPersistingProfile = false
             self.newProfileName = ""
             self.profileInfoMessage = "Profil \(activeProfileName) actif."
+            self.activeAvatar = profiles[id: activeProfileID]?.avatarStyle ?? .fallback
+            self.activeAvatarImageData = profiles[id: activeProfileID]?.avatarImageData ?? .init()
             self.profileStats = Self.profileStats(for: activeProfileID)
             self.profileThemes = Self.profileThemes(for: activeProfileID)
         }
@@ -144,6 +185,14 @@ struct StorybookStationaryFeature {
     }
 
     enum Action: BindableAction, Equatable {
+        case avatarEditorAgeChanged(Int)
+        case avatarEditorGenderChanged(AvatarGender)
+        case avatarGenerateTapped
+        case avatarPlaygroundCancelled
+        case avatarPlaygroundCompleted(URL)
+        case avatarPlaygroundDataResponse(AvatarPlaygroundResponse)
+        case avatarPlaygroundFailed(String)
+        case avatarSaveTapped
         case avatarTapped
         case binding(BindingAction<State>)
         case createProfileTapped
@@ -161,6 +210,7 @@ struct StorybookStationaryFeature {
     enum Delegate: Equatable {
         case createProfile(String)
         case switchProfile(UserProfile.ID)
+        case updateAvatar(UserAvatarStyle, Data)
     }
 
     var body: some Reducer<State, Action> {
@@ -168,9 +218,139 @@ struct StorybookStationaryFeature {
         Reduce { state, action in
             switch action {
             case .avatarTapped:
-                state.destination = .profileSettings(.init())
-                state.profileInfoMessage = "Personnalisation d'avatar a venir."
+                state.destination = .avatarEditor(
+                    .init(
+                        selectedAge: state.activeAvatar.age,
+                        selectedGender: state.activeAvatar.gender,
+                        generatedAvatar: state.activeAvatar,
+                        generatedAvatarImageData: nil,
+                        originalAvatar: state.activeAvatar,
+                        originalAvatarImageData: state.activeAvatarImageData,
+                        playgroundSeed: nil
+                    )
+                )
                 return .none
+
+            case let .avatarEditorAgeChanged(age):
+                guard case var .avatarEditor(editor) = state.destination else {
+                    return .none
+                }
+                editor.selectedAge = min(max(age, 3), 7)
+                editor.generatedAvatar?.age = editor.selectedAge
+                editor.message = nil
+                state.destination = .avatarEditor(editor)
+                return .none
+
+            case let .avatarEditorGenderChanged(gender):
+                guard case var .avatarEditor(editor) = state.destination else {
+                    return .none
+                }
+                editor.selectedGender = gender
+                editor.generatedAvatar?.gender = editor.selectedGender
+                editor.message = nil
+                state.destination = .avatarEditor(editor)
+                return .none
+
+            case .avatarGenerateTapped:
+                guard case var .avatarEditor(editor) = state.destination else {
+                    return .none
+                }
+
+                editor.generationAttempt += 1
+                editor.isGenerating = true
+                editor.message = nil
+                let nonce = uuid().uuidString
+                editor.playgroundSeed = AvatarPlaygroundSeed(
+                    name: state.activeProfileName,
+                    gender: editor.selectedGender,
+                    age: editor.selectedAge,
+                    variationNonce: nonce
+                )
+                state.destination = .avatarEditor(editor)
+                return .none
+
+            case .avatarPlaygroundCancelled:
+                guard case var .avatarEditor(editor) = state.destination else {
+                    return .none
+                }
+                editor.playgroundSeed = nil
+                editor.isLoadingGeneratedImage = false
+                editor.isGenerating = false
+                editor.message = "Generation annulee."
+                state.destination = .avatarEditor(editor)
+                return .none
+
+            case let .avatarPlaygroundCompleted(url):
+                guard case var .avatarEditor(editor) = state.destination else {
+                    return .none
+                }
+                editor.playgroundSeed = nil
+                editor.isGenerating = false
+                editor.isLoadingGeneratedImage = true
+                editor.message = nil
+                state.destination = .avatarEditor(editor)
+                return .run { send in
+                    do {
+                        let data = try await avatarImagePlaygroundClient.loadImageData(url)
+                        await send(.avatarPlaygroundDataResponse(.success(data)))
+                    } catch {
+                        await send(.avatarPlaygroundDataResponse(.failure(error.localizedDescription)))
+                    }
+                }
+
+            case let .avatarPlaygroundDataResponse(response):
+                guard case var .avatarEditor(editor) = state.destination else {
+                    return .none
+                }
+                editor.isGenerating = false
+                editor.isLoadingGeneratedImage = false
+
+                switch response {
+                case let .failure(message):
+                    editor.message = message
+                case let .success(data):
+                    editor.generatedAvatarImageData = data
+                    if data == editor.originalAvatarImageData, !data.isEmpty {
+                        editor.message = "Resultat identique. Regenerer pour obtenir une nouvelle image."
+                    } else {
+                        editor.message = "Nouvel avatar genere."
+                    }
+                }
+                state.destination = .avatarEditor(editor)
+                return .none
+
+            case let .avatarPlaygroundFailed(message):
+                guard case var .avatarEditor(editor) = state.destination else {
+                    return .none
+                }
+                editor.playgroundSeed = nil
+                editor.isGenerating = false
+                editor.isLoadingGeneratedImage = false
+                editor.message = message
+                state.destination = .avatarEditor(editor)
+                return .none
+
+            case .avatarSaveTapped:
+                guard case var .avatarEditor(editor) = state.destination else {
+                    return .none
+                }
+                guard Self.canSaveAvatar(editor) else {
+                    editor.message = "Genere d'abord un nouvel avatar."
+                    state.destination = .avatarEditor(editor)
+                    return .none
+                }
+                let avatar = editor.generatedAvatar ?? Self.makeAvatarFallbackStyle(from: editor)
+                guard let avatarImageData = editor.generatedAvatarImageData else {
+                    editor.message = "Genere d'abord un nouvel avatar."
+                    state.destination = .avatarEditor(editor)
+                    return .none
+                }
+
+                editor.isSaving = true
+                editor.message = nil
+                state.destination = .avatarEditor(editor)
+                state.profileMessage = nil
+                return .send(.delegate(.updateAvatar(avatar, avatarImageData)))
 
             case .binding:
                 return .none
@@ -207,7 +387,17 @@ struct StorybookStationaryFeature {
                 return .none
 
             case .profileTapped:
-                state.destination = .profileSettings(.init())
+                state.destination = .avatarEditor(
+                    .init(
+                        selectedAge: state.activeAvatar.age,
+                        selectedGender: state.activeAvatar.gender,
+                        generatedAvatar: state.activeAvatar,
+                        generatedAvatarImageData: nil,
+                        originalAvatar: state.activeAvatar,
+                        originalAvatarImageData: state.activeAvatarImageData,
+                        playgroundSeed: nil
+                    )
+                )
                 return .none
 
             case let .profileStatTapped(title):
@@ -236,11 +426,21 @@ struct StorybookStationaryFeature {
                 return .send(.delegate(.switchProfile(id)))
 
             case let .sessionUpdated(activeProfileID, activeProfileName, profiles):
+                let wasSavingAvatar: Bool
+                if case let .avatarEditor(editor) = state.destination {
+                    wasSavingAvatar = editor.isSaving
+                } else {
+                    wasSavingAvatar = false
+                }
                 state.applySession(
                     activeProfileID: activeProfileID,
                     activeProfileName: activeProfileName,
                     profiles: profiles
                 )
+                if wasSavingAvatar {
+                    state.destination = nil
+                    state.profileInfoMessage = "Avatar mis a jour."
+                }
                 return .none
 
             case .delegate:

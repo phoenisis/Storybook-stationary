@@ -11,6 +11,7 @@ struct UserProfileClient: Sendable {
     var loadSession: @Sendable () async throws -> UserProfileSession?
     var resolveProfile: @Sendable (_ rawName: String) async throws -> UserProfileSession
     var switchProfile: @Sendable (_ id: UserProfile.ID) async throws -> UserProfileSession
+    var updateAvatar: @Sendable (_ id: UserProfile.ID, _ avatar: UserAvatarStyle, _ avatarImageData: Data) async throws -> UserProfileSession
 }
 
 extension UserProfileClient: DependencyKey {
@@ -22,10 +23,13 @@ extension UserProfileClient: DependencyKey {
         return UserProfileClient(
             loadSession: {
                 try await database.read { db in
-                    let profiles = try UserProfile
+                    let activeProfile = try UserProfile
                         .order { $0.lastUsedAt.desc() }
+                        .fetchOne(db)
+                    guard let activeProfile else { return nil }
+                    let profiles = try UserProfile
+                        .order { $0.name.asc() }
                         .fetchAll(db)
-                    guard let activeProfile = profiles.first else { return nil }
                     return UserProfileSession(active: activeProfile, profiles: profiles)
                 }
             },
@@ -47,7 +51,14 @@ extension UserProfileClient: DependencyKey {
                             id: uuid(),
                             name: trimmedName,
                             createdAt: now,
-                            lastUsedAt: now
+                            lastUsedAt: now,
+                            avatarSymbolName: UserAvatarStyle.fallback.symbolName,
+                            avatarAccessorySymbolName: UserAvatarStyle.fallback.accessorySymbolName,
+                            avatarPrimaryHex: UserAvatarStyle.fallback.primaryHex,
+                            avatarSecondaryHex: UserAvatarStyle.fallback.secondaryHex,
+                            avatarGender: UserAvatarStyle.fallback.gender.rawValue,
+                            avatarAge: UserAvatarStyle.fallback.age,
+                            avatarImageData: .init()
                         )
                         try UserProfile
                             .upsert { profile }
@@ -56,7 +67,7 @@ extension UserProfileClient: DependencyKey {
                     }
 
                     profiles = try UserProfile
-                        .order { $0.lastUsedAt.desc() }
+                        .order { $0.name.asc() }
                         .fetchAll(db)
                     return UserProfileSession(active: activeProfile, profiles: profiles)
                 }
@@ -75,7 +86,29 @@ extension UserProfileClient: DependencyKey {
                         .execute(db)
 
                     let profiles = try UserProfile
-                        .order { $0.lastUsedAt.desc() }
+                        .order { $0.name.asc() }
+                        .fetchAll(db)
+                    return UserProfileSession(active: profile, profiles: profiles)
+                }
+            },
+            updateAvatar: { id, avatar, avatarImageData in
+                return try await database.write { db in
+                    let persistedProfile = try UserProfile
+                        .where { $0.id.eq(id) }
+                        .fetchOne(db)
+                    guard var profile = persistedProfile else {
+                        throw UserProfileClientError.profileNotFound
+                    }
+                    profile.avatarStyle = avatar
+                    profile.avatarImageData = avatarImageData
+                    profile.lastUsedAt = now
+
+                    try UserProfile
+                        .upsert { profile }
+                        .execute(db)
+
+                    let profiles = try UserProfile
+                        .order { $0.name.asc() }
                         .fetchAll(db)
                     return UserProfileSession(active: profile, profiles: profiles)
                 }
@@ -90,6 +123,9 @@ extension UserProfileClient: DependencyKey {
                 throw UserProfileClientError.unimplemented
             },
             switchProfile: { _ in
+                throw UserProfileClientError.unimplemented
+            },
+            updateAvatar: { _, _, _ in
                 throw UserProfileClientError.unimplemented
             }
         )

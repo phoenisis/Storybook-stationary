@@ -32,12 +32,20 @@ struct ContentView: View {
                 .tag(StorybookStationaryFeature.Tab.profile)
         }
         .sheet(
-            item: Binding(projectedValue: $store.destination).profileSettings,
+            item: Binding(projectedValue: $store.destination).avatarEditor,
             id: \.id
-        ) { $profileSettings in
-            ProfileSettingsSheet(
-                keepAudioEnabled: $profileSettings.keepAudioEnabled,
-                onClose: { store.send(.destinationDismissed) }
+        ) { $avatarEditor in
+            ProfileAvatarSheet(
+                state: $avatarEditor,
+                activeProfileName: store.activeProfileName,
+                onClose: { store.send(.destinationDismissed) },
+                onAgeChanged: { age in store.send(.avatarEditorAgeChanged(age)) },
+                onGenderChanged: { gender in store.send(.avatarEditorGenderChanged(gender)) },
+                onGenerate: { store.send(.avatarGenerateTapped) },
+                onPlaygroundCompleted: { url in store.send(.avatarPlaygroundCompleted(url)) },
+                onPlaygroundCancelled: { store.send(.avatarPlaygroundCancelled) },
+                onPlaygroundFailed: { message in store.send(.avatarPlaygroundFailed(message)) },
+                onSave: { store.send(.avatarSaveTapped) }
             )
         }
         .paperPlaygroundTabBarStyle()

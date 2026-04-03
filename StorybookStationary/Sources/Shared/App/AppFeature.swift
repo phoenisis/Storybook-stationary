@@ -104,6 +104,26 @@ struct AppFeature {
                         }
                     )
 
+                case let .delegate(.updateAvatar(avatar, avatarImageData)):
+                    guard let activeProfileID = mainState.activeProfileID else {
+                        return .merge(
+                            childEffect,
+                            .send(.profileResolveFailed(UserProfileClientError.unexpectedMissingProfile.localizedDescription))
+                        )
+                    }
+
+                    return .merge(
+                        childEffect,
+                        .run { send in
+                            do {
+                                let session = try await userProfileClient.updateAvatar(activeProfileID, avatar, avatarImageData)
+                                await send(.profileResolved(session))
+                            } catch {
+                                await send(.profileResolveFailed(error.localizedDescription))
+                            }
+                        }
+                    )
+
                 default:
                     return childEffect
                 }
@@ -182,6 +202,13 @@ struct AppFeature {
                 case var .main(mainState):
                     mainState.isPersistingProfile = false
                     mainState.profileMessage = errorMessage
+                    if case var .avatarEditor(editor) = mainState.destination {
+                        editor.isGenerating = false
+                        editor.isSaving = false
+                        editor.isLoadingGeneratedImage = false
+                        editor.message = errorMessage
+                        mainState.destination = .avatarEditor(editor)
+                    }
                     state.route = .main(mainState)
                 }
                 return .none

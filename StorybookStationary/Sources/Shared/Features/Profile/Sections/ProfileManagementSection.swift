@@ -36,6 +36,12 @@ struct StorybookProfileManagementSection: View {
                         store.send(.selectProfileTapped(profile.id))
                     } label: {
                         HStack(spacing: .m) {
+                            ProfileMiniAvatar(style: profile.avatarStyle, imageData: profile.avatarImageData)
+                                .frame(width: 42, height: 42)
+                                .id(profile.avatarStyle)
+                                .transition(.opacity.combined(with: .scale))
+                                .animation(.spring(duration: 0.35, bounce: 0.28), value: profile.avatarStyle)
+
                             VStack(alignment: .leading, spacing: .xxs) {
                                 Text(profile.name)
                                     .font(.bodyM.weight(.semibold))
@@ -127,3 +133,57 @@ private struct ProfileSelectionIndicator: View {
             .animation(.snappy(duration: 0.22), value: isActive)
     }
 }
+
+private struct ProfileMiniAvatar: View {
+    let style: UserAvatarStyle
+    let imageData: Data
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            if let platformImage = PlatformAvatarImage(data: imageData) {
+                Image(platformAvatarImage: platformImage)
+                    .resizable()
+                    .scaledToFill()
+                    .clipShape(Circle())
+                    .overlay {
+                        Circle().stroke(.white.opacity(0.95), lineWidth: .lineS)
+                    }
+            } else {
+                StorybookCartoonAvatarFace(style: style)
+                    .overlay {
+                        Circle().stroke(.white.opacity(0.95), lineWidth: .lineS)
+                    }
+            }
+
+            Circle()
+                .fill(Color.background.opacity(0.95))
+                .frame(width: 16, height: 16)
+                .overlay {
+                    Image(systemName: style.accessorySymbolName)
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(Color.appPrimary)
+                }
+                .overlay {
+                    Circle().stroke(.white, lineWidth: 1)
+                }
+        }
+    }
+}
+
+#if os(iOS)
+import UIKit
+private typealias PlatformAvatarImage = UIImage
+private extension Image {
+    init(platformAvatarImage: PlatformAvatarImage) {
+        self.init(uiImage: platformAvatarImage)
+    }
+}
+#else
+import AppKit
+private typealias PlatformAvatarImage = NSImage
+private extension Image {
+    init(platformAvatarImage: PlatformAvatarImage) {
+        self.init(nsImage: platformAvatarImage)
+    }
+}
+#endif
