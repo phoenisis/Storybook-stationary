@@ -12,6 +12,11 @@ let project = Project(
         .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.0.0"),
         .package(url: "https://github.com/pointfreeco/swift-structured-queries", from: "0.1.0"),
     ],
+    settings: .settings(base: [
+        "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+        "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
+        "ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES",
+    ]),
     targets: [
         .target(
             name: "StorybookShowcase-iOS",
@@ -21,10 +26,6 @@ let project = Project(
             deploymentTargets: .iOS("26.0"),
             infoPlist: .extendingDefault(with: [
                 "UILaunchScreen": .dictionary([:]),
-                "UIDeviceFamily": .array([
-                    .integer(1),
-                    .integer(2),
-                ]),
             ]),
             sources: [
                 "StorybookShowcase/Sources/Shared/**",
@@ -44,6 +45,13 @@ let project = Project(
                 .package(product: "StructuredQueriesSQLite"),
                 .package(product: "SwiftUINavigation"),
             ]
+            settings: .settings(base: [
+                "EXTRACT_APP_INTENTS_METADATA": "NO",
+                "SWIFT_DEFAULT_ACTOR_ISOLATION": "MainActor",
+                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
+                "ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES",
+            ])
         ),
         .target(
             name: "StorybookStationary-iOS",
@@ -53,10 +61,6 @@ let project = Project(
             deploymentTargets: .iOS("26.0"),
             infoPlist: .extendingDefault(with: [
                 "UILaunchScreen": .dictionary([:]),
-                "UIDeviceFamily": .array([
-                    .integer(1), // iPhone
-                    .integer(2), // iPad
-                ]),
             ]),
             sources: [
                 "StorybookShowcase/Sources/Shared/**",
@@ -76,7 +80,14 @@ let project = Project(
                 .package(product: "StructuredQueries"),
                 .package(product: "StructuredQueriesSQLite"),
                 .package(product: "SwiftUINavigation"),
-            ]
+            ],
+            settings: .settings(base: [
+                "EXTRACT_APP_INTENTS_METADATA": "NO",
+                "SWIFT_DEFAULT_ACTOR_ISOLATION": "MainActor",
+                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
+                "ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES",
+            ])
         ),
         .target(
             name: "StorybookStationary-iOSTests",
@@ -122,7 +133,13 @@ let project = Project(
                 .package(product: "StructuredQueries"),
                 .package(product: "StructuredQueriesSQLite"),
                 .package(product: "SwiftUINavigation"),
-            ]
+            ],
+            settings: .settings(base: [
+                "SWIFT_DEFAULT_ACTOR_ISOLATION": "MainActor",
+                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
+                "ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES",
+            ])
         ),
     ]
 )

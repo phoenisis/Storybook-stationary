@@ -15,7 +15,10 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "PaperPlaygroundDesignSystem"
+            name: "PaperPlaygroundDesignSystem",
+            swiftSettings: [
+                .defaultIsolation(MainActor.self),
+            ]
         ),
     ]
 )

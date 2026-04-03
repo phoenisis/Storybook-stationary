@@ -22,6 +22,7 @@ public enum PaperPlaygroundGradient {
 }
 
 /// Convenience gradient aliases for direct use from `LinearGradient`.
+@MainActor
 public extension LinearGradient {
     static let paperSurfaceFade = PaperPlaygroundGradient.paperSurfaceFade
     static let tertiarySticker = PaperPlaygroundGradient.tertiarySticker
@@ -29,6 +30,7 @@ public extension LinearGradient {
 }
 
 /// `ShapeStyle` aliases for ergonomic `.fill(...)` usage.
+@MainActor
 public extension ShapeStyle where Self == LinearGradient {
     static var paperSurfaceFade: LinearGradient { .paperSurfaceFade }
     static var tertiarySticker: LinearGradient { .tertiarySticker }
